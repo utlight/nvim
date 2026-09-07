@@ -12,6 +12,9 @@ vim.o.cursorline = true
 vim.o.undofile = true
 
 vim.o.confirm = true
+vim.o.shiftwidth = 4
+
+vim.o.scrolloff = 10
 
 vim.opt.fillchars:append({ eob = " " })
 

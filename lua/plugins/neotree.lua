@@ -1,3 +1,66 @@
+local function close_gitsigns_diff()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local name = vim.api.nvim_buf_get_name(buf)
+    if name:match("^gitsigns://") then
+      vim.api.nvim_win_close(win, true)
+    end
+  end
+  vim.cmd("diffoff!")
+end
+
+local function open_gitsigns_diff(bufnr)
+  local gitsigns = require("gitsigns")
+
+  if vim.b[bufnr].gitsigns_head ~= nil then
+    gitsigns.diffthis()
+    return
+  end
+
+  local update_count = 0
+  local done = false
+  local autocmd_id
+  autocmd_id = vim.api.nvim_create_autocmd("User", {
+    pattern = "GitSignsUpdate",
+    callback = function(args)
+      if done or args.buf ~= bufnr then
+        return
+      end
+      update_count = update_count + 1
+      if update_count < 2 then
+        return
+      end
+      done = true
+      gitsigns.diffthis()
+      pcall(vim.api.nvim_del_autocmd, autocmd_id)
+    end,
+  })
+end
+
+local function toggle_gitsigns_diff()
+  if vim.wo.diff then
+    close_gitsigns_diff()
+  else
+    open_gitsigns_diff(vim.api.nvim_get_current_buf())
+  end
+end
+
+local function get_source()
+  local source_name = nil
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.bo[buf].filetype == "neo-tree" then
+      local ok, src = pcall(vim.api.nvim_buf_get_var, buf, "neo_tree_source")
+      if ok then
+        source_name = src
+        break
+      end
+    end
+  end
+
+  return source_name or "filesystem"
+end
+
 return {
   "nvim-neo-tree/neo-tree.nvim",
   dependencies = {
@@ -16,16 +79,55 @@ return {
         use_libuv_file_watcher = true,
         filtered_items = { visible = true },
       },
+      git_status = { window = { mappings = { ["<cr>"] = "diff_selected_file" } } },
+      commands = {
+        diff_selected_file = function(state)
+          local node = state.tree:get_node()
+          if not node then
+            return
+          end
+          if node.type ~= "file" then
+            state.commands["toggle_node"](state)
+            return
+          end
+
+          close_gitsigns_diff()
+
+          local path = node.path or node:get_id()
+          require("neo-tree.utils").open_file(state, path, "edit")
+
+          open_gitsigns_diff(vim.api.nvim_get_current_buf())
+        end,
+      },
     })
 
     vim.keymap.set("n", "<leader>n", function()
       require("neo-tree.command").execute({
-        action = "focus",
-        source = "filesystem",
+        action = "show",
+        source = get_source(),
         toggle = true,
         reveal = true,
+        focus = false,
         dir = vim.fn.getcwd(),
       })
-    end, { desc = "[N]eoTree" })
+    end, { desc = "Open [N]eoTree" })
+
+    vim.keymap.set("n", "<leader>e", function()
+      local state = require("neo-tree.sources.manager").get_state(get_source())
+      if not state then
+        return
+      end
+
+      if state.winid and vim.api.nvim_get_current_win() == state.winid then
+        vim.cmd("wincmd p")
+      else
+        require("neo-tree.command").execute({
+          action = "focus",
+          source = get_source(),
+        })
+      end
+    end, { desc = "Focus [N]eoTree" })
+
+    vim.keymap.set("n", "<leader>gd", toggle_gitsigns_diff, { desc = "[D]iff" })
   end,
 }

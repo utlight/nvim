@@ -8,7 +8,7 @@ return {
             { "<leader>f", group = "[F]ind", mode = { "n", "v" } },
             { "<leader>u", group = "[U]tils", mode = { "n", "v" } },
             { "gr", group = "Lsp Actions", mode = { "n" } },
-            { "s", group = "Surround", mode = { "n", "v" } },
+            { "g", group = "[G]it", mode = { "n", "v" } },
         },
     },
 }

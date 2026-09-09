@@ -4,7 +4,7 @@ return {
   config = function()
     require("mini.pairs").setup()
     require("mini.surround").setup()
-    require("mini.splitjoin").setup({mappings = { toggle = "gs" }})
+    require("mini.splitjoin").setup({ mappings = { toggle = "gs" } })
     require("mini.ai").setup()
     do
       require("mini.jump").setup({ delay = { highlight = 100 } })

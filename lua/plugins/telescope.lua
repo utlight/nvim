@@ -29,6 +29,7 @@ return {
     vim.keymap.set("n", "<leader>fo", builtin.oldfiles, { desc = "[O]ld Files" })
     vim.keymap.set("n", "<leader>fh", builtin.help_tags, { desc = "[H]elp" })
     vim.keymap.set("n", "<leader>fs", builtin.lsp_document_symbols, { desc = "[S]ymbols" })
+    vim.keymap.set("n", "<leader>f/", builtin.live_grep, { desc = "[S]earch Workspace" })
     vim.keymap.set("n", "<leader>fn", function()
       builtin.find_files({ cwd = vim.fn.stdpath("config") })
     end, { desc = "[N]vim Files" })

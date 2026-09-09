@@ -1,50 +1,3 @@
-local function close_gitsigns_diff()
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    local name = vim.api.nvim_buf_get_name(buf)
-    if name:match("^gitsigns://") then
-      vim.api.nvim_win_close(win, true)
-    end
-  end
-  vim.cmd("diffoff!")
-end
-
-local function open_gitsigns_diff(bufnr)
-  local gitsigns = require("gitsigns")
-
-  if vim.b[bufnr].gitsigns_head ~= nil then
-    gitsigns.diffthis()
-    return
-  end
-
-  local update_count = 0
-  local done = false
-  local autocmd_id
-  autocmd_id = vim.api.nvim_create_autocmd("User", {
-    pattern = "GitSignsUpdate",
-    callback = function(args)
-      if done or args.buf ~= bufnr then
-        return
-      end
-      update_count = update_count + 1
-      if update_count < 2 then
-        return
-      end
-      done = true
-      gitsigns.diffthis()
-      pcall(vim.api.nvim_del_autocmd, autocmd_id)
-    end,
-  })
-end
-
-local function toggle_gitsigns_diff()
-  if vim.wo.diff then
-    close_gitsigns_diff()
-  else
-    open_gitsigns_diff(vim.api.nvim_get_current_buf())
-  end
-end
-
 local function get_source()
   local source_name = nil
   for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -79,7 +32,14 @@ return {
         use_libuv_file_watcher = true,
         filtered_items = { visible = true },
       },
-      git_status = { window = { mappings = { ["<cr>"] = "diff_selected_file" } } },
+      git_status = {
+        window = {
+          mappings = {
+            ["<cr>"] = "diff_selected_file",
+            ["e"] = "open",
+          },
+        },
+      },
       commands = {
         diff_selected_file = function(state)
           local node = state.tree:get_node()
@@ -91,12 +51,9 @@ return {
             return
           end
 
-          close_gitsigns_diff()
-
           local path = node.path or node:get_id()
-          require("neo-tree.utils").open_file(state, path, "edit")
 
-          open_gitsigns_diff(vim.api.nvim_get_current_buf())
+          require("diffview").open({ "--", path })
         end,
       },
     })
@@ -127,7 +84,5 @@ return {
         })
       end
     end, { desc = "Focus [N]eoTree" })
-
-    vim.keymap.set("n", "<leader>gd", toggle_gitsigns_diff, { desc = "[D]iff" })
   end,
 }
